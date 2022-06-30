@@ -16,6 +16,7 @@ public class VailApplication {
         requestBody.put("name", "tayoo");
         requestBody.put("description", "tayoo desc");
         requestBody.put("type", "bbb");
+        requestBody.put("expired_on", "2019-02-29");
 
         Validator validator = new Validator(requestBody);
         validator.setValidation("name", "required", "max:25");

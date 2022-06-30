@@ -1,5 +1,7 @@
 package com.dicicip.vail.validations;
 
+import com.dicicip.vail.validations.date.DateValidatorUsingDateFormat;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +55,13 @@ public class Validator {
                         valid = false;
                     }
 
+                }
+
+                if (validator.equals("date")) {
+                    DateValidatorUsingDateFormat dateValidator = new DateValidatorUsingDateFormat("yyyy-MM-dd");
+                    if (!dateValidator.isValid(String.valueOf(value.get(validation.get("columnName"))))) {
+                        valid = false;
+                    }
                 }
             }
         }
