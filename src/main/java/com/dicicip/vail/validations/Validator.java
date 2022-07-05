@@ -1,6 +1,8 @@
 package com.dicicip.vail.validations;
 
 import com.dicicip.vail.validations.date.DateValidatorUsingDateFormat;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +12,10 @@ public class Validator {
 
     List<HashMap> validations = new ArrayList<>();
     HashMap value = null;
+
+    HashMap errors = new HashMap<>();
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     public Validator(HashMap o) {
         value = o;
@@ -31,11 +37,13 @@ public class Validator {
         for (int i = 0; i < validations.size(); i++) {
 
             HashMap validation = validations.get(i);
-//            System.out.println("columnName --> " + validation.get("columnName"));
             for (String validator : (String[]) validation.get("validators")) {
-//                System.out.println("VALIDATOR --> " + validator);
                 if (validator.equals("required")) {
                     if (value.get(validation.get("columnName")) == null) {
+                        addErrorMessage(
+                                String.valueOf(validation.get("columnName")),
+                                value.get(validation.get("columnName")) + " cannot be empty"
+                        );
                         valid = false;
                     }
                 }
@@ -45,19 +53,22 @@ public class Validator {
                     boolean isCharFound = false;
 
                     for (String content : contents) {
-                        System.out.println("content --> " + content);
                         if (String.valueOf(value.get(validation.get("columnName"))).equals(content)) {
                             isCharFound = true;
                         }
                     }
 
                     if (!isCharFound) {
+                        addErrorMessage(
+                                String.valueOf(validation.get("columnName")),
+                                value.get(validation.get("columnName")) + " value must be " + String.join(",", contents)
+                        );
                         valid = false;
                     }
 
                 }
 
-                if (validator.equals("date")) {
+                if (validator.equals("date") && value.get(validation.get("columnName")) != null) {
                     DateValidatorUsingDateFormat dateValidator = new DateValidatorUsingDateFormat("yyyy-MM-dd");
                     if (!dateValidator.isValid(String.valueOf(value.get(validation.get("columnName"))))) {
                         valid = false;
@@ -67,5 +78,32 @@ public class Validator {
         }
 
         return valid;
+    }
+
+    public List<HashMap> getErrors() throws JsonProcessingException {
+        System.out.println(objectMapper.writeValueAsString(errors));
+        return new ArrayList<>();
+    }
+
+    public List<HashMap> getErrorsInJSONString() {
+        return new ArrayList<>();
+    }
+
+    private void addErrorMessage(String columnName, String message) {
+
+        System.out.println("columnName ==> " + columnName);
+        HashMap error = (HashMap) errors.get(columnName);
+
+        if (error != null) {
+            List<String> messages = (List<String>) error.get(columnName);
+
+            if (error == null) {
+                error = new HashMap();
+                messages = new ArrayList<>();
+            }
+
+            messages.add(message);
+            errors.put(columnName, messages);
+        }
     }
 }

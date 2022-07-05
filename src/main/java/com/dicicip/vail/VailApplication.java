@@ -1,6 +1,7 @@
 package com.dicicip.vail;
 
 import com.dicicip.vail.validations.Validator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -15,8 +16,8 @@ public class VailApplication {
         HashMap requestBody = new HashMap();
         requestBody.put("name", "tayoo");
         requestBody.put("description", "tayoo desc");
-        requestBody.put("type", "bbb");
-        requestBody.put("expired_on", "2019-02-29");
+        requestBody.put("type", "bbbz");
+//        requestBody.put("expired_on", "2019-02-29");
 
         Validator validator = new Validator(requestBody);
         validator.setValidation("name", "required", "max:25");
@@ -25,6 +26,11 @@ public class VailApplication {
         validator.setValidation("expired_on", "date");
 
         System.out.println("isValid --> " + validator.isValid());
+        try {
+            validator.getErrors();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
