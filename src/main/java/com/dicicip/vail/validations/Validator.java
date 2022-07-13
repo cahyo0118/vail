@@ -3,6 +3,9 @@ package com.dicicip.vail.validations;
 import com.dicicip.vail.validations.date.DateValidatorUsingDateFormat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,12 +16,20 @@ public class Validator {
     List<HashMap> validations = new ArrayList<>();
     HashMap value = null;
 
-    HashMap errors = new HashMap<>();
+    HashMap<String, Object> errors = new HashMap<>();
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
     public Validator(HashMap o) {
         value = o;
+    }
+
+    public Validator(String jsonString) {
+        try {
+            value = objectMapper.readValue(jsonString, HashMap.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void setValidation(String columnName, String... validators) {
@@ -39,16 +50,16 @@ public class Validator {
             HashMap validation = validations.get(i);
             for (String validator : (String[]) validation.get("validators")) {
                 if (validator.equals("required")) {
-                    if (value.get(validation.get("columnName")) == null) {
+                    if (value.get(validation.get("columnName")) == null || value.get(validation.get("columnName")).equals("")) {
                         addErrorMessage(
                                 String.valueOf(validation.get("columnName")),
-                                value.get(validation.get("columnName")) + " cannot be empty"
+                                validation.get("columnName") + " cannot be empty"
                         );
                         valid = false;
                     }
                 }
 
-                if (validator.contains("in:")) {
+                if (validator.contains("in:") && !validator.contains("min:")) {
                     String[] contents = validator.replace("in:", "").split(",");
                     boolean isCharFound = false;
 
@@ -61,7 +72,7 @@ public class Validator {
                     if (!isCharFound) {
                         addErrorMessage(
                                 String.valueOf(validation.get("columnName")),
-                                value.get(validation.get("columnName")) + " value must be " + String.join(",", contents)
+                                validation.get("columnName") + " value must be " + String.join(",", contents)
                         );
                         valid = false;
                     }
@@ -74,36 +85,184 @@ public class Validator {
                         valid = false;
                     }
                 }
+
+////                Untested
+//                if (validator.contains("required_if:")) {
+//                    String[] contents = validator.replace("required_if:", "").split(",");
+//                    boolean isCharFound = false;
+//                    if (value.get(contents[0]) == null || !String.valueOf(value.get(contents[0])).equals(contents[1])) {
+//                        isCharFound = true;
+//                    }
+//
+//                    if (!isCharFound) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " value must be " + String.join(",", contents)
+//                        );
+//                        valid = false;
+//                    }
+//
+//                }
+//
+////                Untested
+//                if (validator.contains("required_with:")) {
+//                    String[] contents = validator.replace("required_with:", "").split(",");
+//                    boolean isAllFieldFounds = true;
+//
+//                    for (String content : contents) {
+//
+//                        if (value.get(validation.get(content)) == null || String.valueOf(value.get(validation.get(content))).equals("")) {
+//                            isAllFieldFounds = false;
+//                        }
+//
+//                    }
+//
+//                    if (value.get(validation.get("columnName")) == null || isAllFieldFounds) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " value must be " + String.join(",", contents)
+//                        );
+//                        valid = false;
+//                    }
+//
+//                }
+//
+//                //                Untested
+//                if (validator.equals("email")) {
+//                    if (value.get(validation.get("columnName")) == null) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " cannot be empty"
+//                        );
+//                        valid = false;
+//                    }
+//                }
+//
+//                //                Untested
+//                if (validator.equals("email")) {
+//                    if (value.get(validation.get("columnName")) == null) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " cannot be empty"
+//                        );
+//                        valid = false;
+//                    }
+//                }
+//
+//                //                Untested
+//                if (validator.equals("url")) {
+//                    if (value.get(validation.get("columnName")) == null) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " cannot be empty"
+//                        );
+//                        valid = false;
+//                    }
+//                }
+//
+//                //                Untested
+//                if (validator.equals("boolean")) {
+//                    if (value.get(validation.get("columnName")) == null) {
+//                        addErrorMessage(
+//                                String.valueOf(validation.get("columnName")),
+//                                validation.get("columnName") + " cannot be empty"
+//                        );
+//                        valid = false;
+//                    }
+//                }
+
+                if (validator.contains("min:")) {
+
+                    String[] contents = validator.split("\\|");
+
+
+                    if (contents.length > 1) {
+//                        not digit
+
+                        String type = contents[0];
+                        int validationValue = Integer.parseInt(contents[1].replace("min:", ""));
+
+                        if (type.equals("integer")) {
+                            if (value.get(validation.get("columnName")) != null && Integer.parseInt(String.valueOf(value.get(validation.get("columnName")))) < validationValue) {
+                                addErrorMessage(
+                                        String.valueOf(validation.get("columnName")),
+                                        validation.get("columnName") + " must must be more than " + validationValue
+                                );
+                                valid = false;
+
+                            }
+                        }
+
+                        if (type.equals("array")) {
+
+                            try {
+
+                                JSONArray array = new JSONArray(objectMapper.writeValueAsString(value.get(validation.get("columnName"))));
+
+                                if (value.get(validation.get("columnName")) != null && array.length() < validationValue) {
+                                    addErrorMessage(
+                                            String.valueOf(validation.get("columnName")),
+                                            validation.get("columnName") + " must have at least " + validationValue + " items"
+                                    );
+                                    valid = false;
+                                }
+                            } catch (Exception exArray) {
+                                addErrorMessage(
+                                        String.valueOf(validation.get("columnName")),
+                                        "Please use valid array format"
+                                );
+                                valid = false;
+                            }
+
+                        }
+
+                    } else {
+//                        digit
+                        int digit = Integer.parseInt(contents[0].replace("min:", ""));
+
+                        if (value.get(validation.get("columnName")) != null && String.valueOf(value.get(validation.get("columnName"))).length() < digit) {
+                            addErrorMessage(
+                                    String.valueOf(validation.get("columnName")),
+                                    validation.get("columnName") + " must have at least " + digit + " digits"
+                            );
+                            valid = false;
+
+                        }
+                    }
+                }
+
             }
         }
 
         return valid;
     }
 
-    public List<HashMap> getErrors() throws JsonProcessingException {
-        System.out.println(objectMapper.writeValueAsString(errors));
-        return new ArrayList<>();
+    public HashMap<String, Object> getErrors() {
+        return errors;
     }
 
-    public List<HashMap> getErrorsInJSONString() {
-        return new ArrayList<>();
+    public String getErrorsInJSONString() {
+        try {
+            return objectMapper.writeValueAsString(errors);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     private void addErrorMessage(String columnName, String message) {
 
+        System.out.println("---------------------------------------------");
         System.out.println("columnName ==> " + columnName);
-        HashMap error = (HashMap) errors.get(columnName);
+        System.out.println("message ==> " + message);
 
-        if (error != null) {
-            List<String> messages = (List<String>) error.get(columnName);
+        List<String> messages = (List<String>) errors.get(columnName);
 
-            if (error == null) {
-                error = new HashMap();
-                messages = new ArrayList<>();
-            }
-
-            messages.add(message);
-            errors.put(columnName, messages);
+        if (messages == null) {
+            messages = new ArrayList<>();
         }
+
+        messages.add(message);
+        errors.put(columnName, messages);
+
     }
 }

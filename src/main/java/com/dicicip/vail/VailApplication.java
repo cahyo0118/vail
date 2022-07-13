@@ -18,19 +18,24 @@ public class VailApplication {
         requestBody.put("description", "tayoo desc");
         requestBody.put("type", "bbbz");
 //        requestBody.put("expired_on", "2019-02-29");
+//        requestBody.put("age", "min:2");
 
-        Validator validator = new Validator(requestBody);
+//        Validator validator = new Validator(requestBody);
+        Validator validator = new Validator("{\"name\":\"tayoo\",\"description\":\"tayoo desc\",\"type\":\"\",\"age\":[3]}");
         validator.setValidation("name", "required", "max:25");
         validator.setValidation("description", "required");
         validator.setValidation("type", "required", "in:aaa,bbb");
         validator.setValidation("expired_on", "date");
+        validator.setValidation("age", "array|min:2");
 
         System.out.println("isValid --> " + validator.isValid());
-        try {
-            validator.getErrors();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        System.out.println("errors --> " + validator.getErrorsInJSONString());
+        System.out.println("errorsMap --> " + validator.getErrors());
+//        try {
+//            validator.getErrors();
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
 }
